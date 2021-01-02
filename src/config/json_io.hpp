@@ -22,10 +22,11 @@
 #pragma once
 #include <dict.hpp>
 #include <filesystem>
-#include <iostream>
+#include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace config_json {
+namespace config_json
+{
 using json = nlohmann::json;
 using json_t = decltype(json::parse(""));
 
@@ -81,5 +82,10 @@ inline config_t load_config(const std::string& json)
     return load_config<config_t>(json::parse(json));
 }
 
+template <typename config_t>
+inline config_t load_config(const std::filesystem::path& json_file)
+{
+    return load_config<config_t>(json::parse(std::ifstream { json_file.string() }));
+}
 
 }

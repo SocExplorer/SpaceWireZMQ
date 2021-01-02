@@ -22,7 +22,7 @@
 #pragma once
 #include "SpaceWireBridge.hpp"
 
-class STARDundeeBridge: ISpaceWireBridge
+class STARDundeeBridge: public ISpaceWireBridge
 {
 public:
     virtual bool send_packet(const spw_packet& packet)final;

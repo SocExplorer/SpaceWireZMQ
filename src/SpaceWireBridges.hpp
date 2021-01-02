@@ -19,32 +19,49 @@
 /*--                  Author : Alexis Jeandet
 --                     Mail : alexis.jeandet@lpp.polytechnique.fr
 ----------------------------------------------------------------------------*/
-#include "StarDundee.hpp"
+#pragma once
 #include "PacketQueue.hpp"
-#include "SpaceWireBridges.hpp"
+#include "SpaceWireBridge.hpp"
 #include "config/Config.hpp"
+#include <functional>
+#include <string>
+#include <unordered_map>
+#include <containers/algorithms.hpp>
 
-static auto t = SpaceWireBriges::register_ctor(
-    "STAR-Dundee", [](const Config& cfg, packet_queue* publish_queue) {
-        return new SpaceWireBridge(std::make_unique<STARDundeeBridge>(), publish_queue);
-    });
+using SpaceWireBridge_ctor
+    = std::function<SpaceWireBridge*(const Config& cfg, packet_queue* publish_queue)>;
 
-bool STARDundeeBridge::send_packet(const spw_packet& packet) { }
-
-spw_packet STARDundeeBridge::receive_packet() { }
-
-bool STARDundeeBridge::packet_received() { }
-
-bool STARDundeeBridge::set_configuration(const Config& cfg)
+namespace details
 {
-    return true;
-}
-
-Config STARDundeeBridge::configuration() const
+struct SpaceWireBrigesSingleton
 {
-    return {};
-}
+    static SpaceWireBrigesSingleton& instance()
+    {
+        static SpaceWireBrigesSingleton self;
+        return self;
+    }
+    std::unordered_map<std::string, SpaceWireBridge_ctor> factory;
+};
+};
 
-STARDundeeBridge::STARDundeeBridge() { }
+class SpaceWireBriges
+{
+public:
+    static bool register_ctor(const std::string& name, SpaceWireBridge_ctor&& ctor)
+    {
+        using namespace details;
+        SpaceWireBrigesSingleton::instance().factory[name] = std::move(ctor);
+        return true;
+    }
 
-STARDundeeBridge::~STARDundeeBridge() { }
+    static SpaceWireBridge* make_bridge(const std::string& name,const Config& cfg, packet_queue* publish_queue)
+    {
+        using namespace cpp_utils::containers;
+        using  namespace details;
+        if(contains(SpaceWireBrigesSingleton::instance().factory, name))
+        {
+            return SpaceWireBrigesSingleton::instance().factory[name](cfg,publish_queue);
+        }
+        return nullptr;
+    }
+};

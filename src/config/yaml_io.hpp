@@ -108,4 +108,10 @@ inline config_t load_config(const std::string& yaml)
     return load_config<config_t>(YAML::Load(yaml));
 }
 
+template <typename config_t>
+inline config_t load_config(const std::filesystem::path& yaml_file)
+{
+    return load_config<config_t>(YAML::LoadFile(yaml_file.string()));
+}
+
 }

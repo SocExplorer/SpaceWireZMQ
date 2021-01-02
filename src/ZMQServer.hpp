@@ -22,6 +22,7 @@
 #pragma once
 #include "PacketQueue.hpp"
 #include "SpaceWireZMQ.hpp"
+#include "SpaceWireBridges.hpp"
 #include "config/Config.hpp"
 #include "spdlog/spdlog.h"
 #include <atomic>
