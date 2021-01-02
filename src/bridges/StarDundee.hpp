@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
 --  This file is a part of the SocExplorer Software
---  Copyright (C) 2020, Plasma Physics Laboratory - CNRS
+--  Copyright (C) 2021, Plasma Physics Laboratory - CNRS
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -19,14 +19,18 @@
 /*--                  Author : Alexis Jeandet
 --                     Mail : alexis.jeandet@lpp.polytechnique.fr
 ----------------------------------------------------------------------------*/
-#include "ZMQServer.hpp"
-#include "spdlog/spdlog.h"
-#include "config/Config.hpp"
-#include "ZMQServer.hpp"
+#pragma once
 #include "SpaceWireBridge.hpp"
 
-int main(int argc, char** argv)
+class STARDundeeBridge: ISpaceWireBridge
 {
-    spdlog::info("Spacewire ZMQ server startup");
-    return 0;
-}
+public:
+    virtual bool send_packet(const spw_packet& packet)final;
+    virtual spw_packet receive_packet()final;
+
+    virtual bool packet_received()final;
+    virtual bool set_configuration(const Config& cfg)final;
+    virtual Config configuration()const final;
+    STARDundeeBridge();
+    virtual ~STARDundeeBridge();
+};

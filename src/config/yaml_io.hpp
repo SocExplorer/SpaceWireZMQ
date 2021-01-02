@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
 --  This file is a part of the SocExplorer Software
---  Copyright (C) 2020, Plasma Physics Laboratory - CNRS
+--  Copyright (C) 2021, Plasma Physics Laboratory - CNRS
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ enum class StringType
     Float
 };
 
-StringType str_type(const std::string& data)
+inline StringType str_type(const std::string& data)
 {
     const std::regex float_regex { R"(^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$)" };
     const std::regex bool_regex { R"(^(bool)?|(true)?$)" };

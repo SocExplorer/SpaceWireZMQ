@@ -2,7 +2,9 @@ build/
 subprojects/range-v3-*
 subprojects/Catch2-*
 subprojects/cpp_utils
-subprojects/QCustomPlot
+subprojects/fmt-*
+subprojects/hedley-*
+subprojects/spdlog-*
 subprojects/packagecache/*
 *.srctrl*
 *.kdev4

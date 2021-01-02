@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
 --  This file is a part of the SocExplorer Software
---  Copyright (C) 2020, Plasma Physics Laboratory - CNRS
+--  Copyright (C) 2021, Plasma Physics Laboratory - CNRS
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -19,14 +19,26 @@
 /*--                  Author : Alexis Jeandet
 --                     Mail : alexis.jeandet@lpp.polytechnique.fr
 ----------------------------------------------------------------------------*/
-#include "ZMQServer.hpp"
-#include "spdlog/spdlog.h"
-#include "config/Config.hpp"
-#include "ZMQServer.hpp"
-#include "SpaceWireBridge.hpp"
+#pragma once
+#include "PacketQueue.hpp"
+#include <yas/object.hpp>
+#include <yas/serialize.hpp>
+#include <yas/std_types.hpp>
+#include <zmq.hpp>
 
-int main(int argc, char** argv)
+inline zmq::const_buffer to_buffer(const spw_packet& packet)
 {
-    spdlog::info("Spacewire ZMQ server startup");
-    return 0;
+    auto buf = yas::save<yas::mem | yas::binary>(
+        YAS_OBJECT_STRUCT("spw_packet", packet, packet, port, bridge_id));
+
+    return zmq::const_buffer{ buf.data.get(), buf.size };
+}
+
+
+inline spw_packet from_buffer(const zmq::mutable_buffer& buffer)
+{
+    spw_packet p;
+    yas::load<yas::mem | yas::binary>(yas::shared_buffer { buffer.data(), buffer.size() },
+        YAS_OBJECT_STRUCT("spw_packet", p, packet, port, bridge_id));
+    return p;
 }

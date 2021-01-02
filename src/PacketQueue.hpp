@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
 --  This file is a part of the SocExplorer Software
---  Copyright (C) 2020, Plasma Physics Laboratory - CNRS
+--  Copyright (C) 2021, Plasma Physics Laboratory - CNRS
 --
 --  This program is free software; you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -19,14 +19,15 @@
 /*--                  Author : Alexis Jeandet
 --                     Mail : alexis.jeandet@lpp.polytechnique.fr
 ----------------------------------------------------------------------------*/
-#include "ZMQServer.hpp"
-#include "spdlog/spdlog.h"
-#include "config/Config.hpp"
-#include "ZMQServer.hpp"
-#include "SpaceWireBridge.hpp"
+#pragma once
+#include <channels/channels.hpp>
+#include <zmq.hpp>
 
-int main(int argc, char** argv)
+struct spw_packet
 {
-    spdlog::info("Spacewire ZMQ server startup");
-    return 0;
-}
+    std::vector<char> packet;
+    std::size_t port;
+    std::string bridge_id;
+};
+
+using packet_queue = channels::channel<spw_packet, 16, channels::full_policy::wait_for_space>;

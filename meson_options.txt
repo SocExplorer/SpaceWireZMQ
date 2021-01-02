@@ -1,0 +1,1 @@
+option('with_stardundee', type: 'boolean', value: false, description: 'Enable STAR Dundee bridge wrapper.')
