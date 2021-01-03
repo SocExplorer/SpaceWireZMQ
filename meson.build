@@ -19,7 +19,9 @@ yas_dep = dependency('yas')
 
 argparse_dep = cmake.subproject('argparse').dependency('argparse')
 
-SpaceWireZMQ_src = files(['src/main.cpp'])
+SpaceWireZMQ_src = files([
+    'src/ZMQServer.cpp'
+])
 
 SpaceWireZMQ_headers = files([
     'src/ZMQServer.hpp',
@@ -29,7 +31,8 @@ SpaceWireZMQ_headers = files([
     'src/config/json_io.hpp',
     'src/PacketQueue.hpp',
     'src/SpaceWireZMQ.hpp',
-    'src/SpaceWireBridges.hpp'
+    'src/SpaceWireBridges.hpp',
+    'src/callable.hpp'
 ])
 
 if get_option('with_stardundee')
@@ -37,17 +40,26 @@ if get_option('with_stardundee')
     SpaceWireZMQ_headers += 'src/bridges/StarDundee.hpp'
 endif
 
+SpaceWireZMQ_dependencies = [
+                  cppzmq_dep, spdlog_dep, yaml_cpp_dep, cppdict_dep,
+                  nlohmann_json_dep, channels_dep, fmt_dep, yas_dep,
+                  cpp_utils_dep, argparse_dep
+]
+
+
+SpaceWireZMQ_lib = library('spacewirezmq',SpaceWireZMQ_src,
+                           include_directories:['src'],
+                           dependencies: SpaceWireZMQ_dependencies)
 
 SpaceWireZMQ_dep = declare_dependency(
-        include_directories:['src'],
-        dependencies:[cppzmq_dep, spdlog_dep, yaml_cpp_dep, cppdict_dep,
-                      nlohmann_json_dep, channels_dep, fmt_dep, yas_dep,
-                      cpp_utils_dep, argparse_dep]
+        link_with: SpaceWireZMQ_lib,
+        include_directories: ['src'],
+        dependencies: SpaceWireZMQ_dependencies
         )
 
-executable('spacewirezmq',SpaceWireZMQ_src,
-    dependencies:[SpaceWireZMQ_dep],
-    extra_files:SpaceWireZMQ_headers
+executable('spacewirezmq','src/main.cpp',
+    dependencies: [SpaceWireZMQ_dep],
+    extra_files: SpaceWireZMQ_headers
     )
 
 subdir('tests')

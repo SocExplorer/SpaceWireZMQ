@@ -20,6 +20,7 @@
 --                     Mail : alexis.jeandet@lpp.polytechnique.fr
 ----------------------------------------------------------------------------*/
 #include "SpaceWireBridge.hpp"
+#include "SpaceWireBridges.hpp"
 #include "ZMQServer.hpp"
 #include "config/Config.hpp"
 #include "config/json_io.hpp"
@@ -27,6 +28,7 @@
 #include "spdlog/spdlog.h"
 #include <argparse/argparse.hpp>
 #include <filesystem>
+
 
 void load_config(const std::filesystem::path& path, Config& cfg)
 {
@@ -74,7 +76,10 @@ int main(int argc, char** argv)
             spdlog::error("Config file {} does not exist", config_file);
         }
     }
+
     ZMQServer server { cfg["server"] };
+    SpaceWireBridges::setup(cfg["bridges"], &server.received_packets);
     server.loop();
+    SpaceWireBridges::teardown();
     return 0;
 }

@@ -24,7 +24,7 @@
 #include "SpaceWireBridges.hpp"
 #include "config/Config.hpp"
 
-static auto t = SpaceWireBriges::register_ctor(
+static auto t = SpaceWireBridges::register_ctor(
     "STAR-Dundee", [](const Config& cfg, packet_queue* publish_queue) {
         return std::make_unique<SpaceWireBridge>(std::make_unique<STARDundeeBridge>(cfg), publish_queue);
     });

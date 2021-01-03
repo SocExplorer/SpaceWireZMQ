@@ -5,6 +5,8 @@
 #include <catch.hpp>
 #endif
 #include "SpaceWireBridge.hpp"
+#include "SpaceWireBridges.hpp"
+#include "SpaceWireZMQ.hpp"
 #include "ZMQServer.hpp"
 #include "config/Config.hpp"
 #include "config/yaml_io.hpp"
@@ -47,7 +49,7 @@ public:
     virtual ~MockBridge() { }
 };
 
-static auto t = SpaceWireBriges::register_ctor(
+static auto t = SpaceWireBridges::register_ctor(
     "Mock", [](const Config& cfg, packet_queue* publish_queue) {
         return std::make_unique<SpaceWireBridge>(std::make_unique<MockBridge>(cfg), publish_queue);
     });
@@ -107,7 +109,7 @@ TEST_CASE("ZMQ Server", "[]")
 {
     int loopback_packets = 0;
     ZMQServer server { {} };
-    SpaceWireBriges::setup(
+    SpaceWireBridges::setup(
         config_yaml::load_config<Config>(YML_Config), &(server.received_packets));
     std::this_thread::sleep_for(5ms);
     ZMQMockClient client { server.configuration() };
@@ -122,5 +124,5 @@ TEST_CASE("ZMQ Server", "[]")
     REQUIRE(std::size(sent_packets) == 100UL);
     REQUIRE(client.consume_packets() == loopback_packets);
     server.close();
-    SpaceWireBriges::teardown();
+    SpaceWireBridges::teardown();
 }

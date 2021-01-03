@@ -78,7 +78,7 @@ struct SpaceWireBrigesSingleton
 };
 };
 
-class SpaceWireBriges
+class SpaceWireBridges
 {
 public:
     static void setup(Config config, packet_queue* publish_queue)
