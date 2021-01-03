@@ -22,10 +22,11 @@
 #pragma once
 #include "PacketQueue.hpp"
 #include "config/Config.hpp"
+#include <spdlog/spdlog.h>
+#include <chrono>
 #include <memory>
 #include <thread>
 #include <vector>
-#include <chrono>
 using namespace std::chrono_literals;
 
 class ISpaceWireBridge
@@ -49,26 +50,15 @@ class SpaceWireBridge
     packet_queue* m_publish_queue = nullptr;
     std::thread m_rec_thread;
     std::thread m_send_thread;
+
 public:
     SpaceWireBridge(std::unique_ptr<ISpaceWireBridge>&& bridge, packet_queue* publish_queue)
             : m_bridge { std::move(bridge) }, m_publish_queue { publish_queue }
     {
-        m_rec_thread = std::thread([this]()
-        {
-            while (!m_publish_queue->closed()) {
-                if(m_bridge->packet_received())
-                    *m_publish_queue << m_bridge->receive_packet();
-                std::this_thread::sleep_for(100us);
-            }
-        });
-
-        m_send_thread = std::thread([this]()
-        {
-            while (!m_sending_queue.closed()) {
-                m_bridge->send_packet(*m_sending_queue.take());
-            }
-        });
+        m_rec_thread = std::thread(&SpaceWireBridge::receiving_thread, this);
+        m_send_thread = std::thread(&SpaceWireBridge::sending_thread, this);
     }
+
     ~SpaceWireBridge()
     {
         m_sending_queue.close();
@@ -76,6 +66,41 @@ public:
         m_send_thread.join();
     }
 
+    void send(spw_packet&& packet) { m_sending_queue.add(std::move(packet)); }
+
     bool set_configuration(const Config& cfg) { return m_bridge->set_configuration(cfg); }
     Config configuration() const { return m_bridge->configuration(); }
+
+private:
+    void receiving_thread()
+    {
+        while (!m_publish_queue->closed())
+        {
+            int tries = 0;
+            do
+            {
+                if (m_bridge->packet_received())
+                {
+                    spdlog::debug("Got one packet");
+                    *m_publish_queue << m_bridge->receive_packet();
+                    tries = 0;
+                }
+                else
+                {
+                    tries++;
+                }
+            } while (tries < 100);
+            std::this_thread::sleep_for(100us);
+        }
+    }
+
+    void sending_thread()
+    {
+        while (!m_sending_queue.closed())
+        {
+            auto maybe_packet = m_sending_queue.take();
+            if (maybe_packet)
+                m_bridge->send_packet(*maybe_packet);
+        }
+    }
 };

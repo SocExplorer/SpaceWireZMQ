@@ -74,6 +74,7 @@ int main(int argc, char** argv)
             spdlog::error("Config file {} does not exist", config_file);
         }
     }
-
+    ZMQServer server { cfg["server"] };
+    server.loop();
     return 0;
 }

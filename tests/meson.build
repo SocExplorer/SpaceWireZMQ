@@ -1,7 +1,8 @@
 
 tests = [
     'json_cppdict',
-    'yaml_cppdict'
+    'yaml_cppdict',
+    'server'
 ]
 
 foreach test:tests

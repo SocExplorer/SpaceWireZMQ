@@ -26,7 +26,7 @@
 
 static auto t = SpaceWireBriges::register_ctor(
     "STAR-Dundee", [](const Config& cfg, packet_queue* publish_queue) {
-        return new SpaceWireBridge(std::make_unique<STARDundeeBridge>(), publish_queue);
+        return std::make_unique<SpaceWireBridge>(std::make_unique<STARDundeeBridge>(cfg), publish_queue);
     });
 
 bool STARDundeeBridge::send_packet(const spw_packet& packet) { }
@@ -45,6 +45,6 @@ Config STARDundeeBridge::configuration() const
     return {};
 }
 
-STARDundeeBridge::STARDundeeBridge() { }
+STARDundeeBridge::STARDundeeBridge(const Config &cfg) { }
 
 STARDundeeBridge::~STARDundeeBridge() { }

@@ -23,13 +23,14 @@
 #include "PacketQueue.hpp"
 #include "SpaceWireBridge.hpp"
 #include "config/Config.hpp"
+#include <containers/algorithms.hpp>
 #include <functional>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
-#include <containers/algorithms.hpp>
 
-using SpaceWireBridge_ctor
-    = std::function<SpaceWireBridge*(const Config& cfg, packet_queue* publish_queue)>;
+using SpaceWireBridge_ctor = std::function<std::unique_ptr<SpaceWireBridge>(
+    const Config& cfg, packet_queue* publish_queue)>;
 
 namespace details
 {
@@ -40,13 +41,61 @@ struct SpaceWireBrigesSingleton
         static SpaceWireBrigesSingleton self;
         return self;
     }
+    static void load_bridge(
+        const std::string& bridge_id, const Config& config, packet_queue* publish_queue)
+    {
+        using namespace cpp_utils::containers;
+        auto& self = instance();
+        if (contains(self.factory, bridge_id) && !contains(self.loaded_bridges, bridge_id))
+        {
+            auto bridge = self.factory[bridge_id](config, publish_queue);
+            self.loaded_bridges[bridge_id] = std::move(bridge);
+        }
+        else
+        {
+            spdlog::error("Unknown bridge ID {}, not loading it.", bridge_id);
+        }
+    }
+
+    inline void send(spw_packet&& packet)
+    {
+        using namespace cpp_utils::containers;
+        auto& self = instance();
+        if (contains(self.loaded_bridges, packet.bridge_id))
+        {
+            self.loaded_bridges[packet.bridge_id]->send(std::move(packet));
+        }
+        else
+        {
+            spdlog::error("Unknown bridge ID {}, dropping packet.", packet.bridge_id);
+        }
+    }
+
+    inline void teardown() { loaded_bridges.clear(); }
+
     std::unordered_map<std::string, SpaceWireBridge_ctor> factory;
+    std::unordered_map<std::string, std::unique_ptr<SpaceWireBridge>> loaded_bridges;
 };
 };
 
 class SpaceWireBriges
 {
 public:
+    static void setup(Config config, packet_queue* publish_queue)
+    {
+        using namespace cpp_utils::containers;
+        if (!config.isEmpty())
+        {
+            for (const auto& [name, node] : config)
+            {
+                details::SpaceWireBrigesSingleton::instance().load_bridge(
+                    name, *node.get(), publish_queue);
+            }
+        }
+    }
+
+    static void teardown() { details::SpaceWireBrigesSingleton::instance().teardown(); }
+
     static bool register_ctor(const std::string& name, SpaceWireBridge_ctor&& ctor)
     {
         using namespace details;
@@ -54,14 +103,9 @@ public:
         return true;
     }
 
-    static SpaceWireBridge* make_bridge(const std::string& name,const Config& cfg, packet_queue* publish_queue)
+    static inline void send(spw_packet&& packet)
     {
-        using namespace cpp_utils::containers;
-        using  namespace details;
-        if(contains(SpaceWireBrigesSingleton::instance().factory, name))
-        {
-            return SpaceWireBrigesSingleton::instance().factory[name](cfg,publish_queue);
-        }
-        return nullptr;
+        using namespace details;
+        SpaceWireBrigesSingleton::instance().send(std::move(packet));
     }
 };

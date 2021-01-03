@@ -25,20 +25,31 @@
 #include <yas/serialize.hpp>
 #include <yas/std_types.hpp>
 #include <zmq.hpp>
+#include <cstring>
 
-inline zmq::const_buffer to_buffer(const spw_packet& packet)
+inline zmq::message_t to_message(const spw_packet& packet)
 {
     auto buf = yas::save<yas::mem | yas::binary>(
         YAS_OBJECT_STRUCT("spw_packet", packet, packet, port, bridge_id));
-
-    return zmq::const_buffer{ buf.data.get(), buf.size };
+    return zmq::message_t{ buf.data.get(), buf.size };
 }
 
+inline zmq::message_t to_message(const std::string& topic, const spw_packet& packet)
+{
+    const auto topic_len = std::size(topic);
+    auto buf = yas::save<yas::mem | yas::binary>(
+        YAS_OBJECT_STRUCT("spw_packet", packet, packet, port, bridge_id));
+    const auto buffer_len = topic_len+buf.size;
+    char* buffer=new char[buffer_len]();
+    std::memcpy(buffer,topic.data(), topic_len);
+    std::memcpy(buffer+topic_len, buf.data.get(), buf.size);
+    return zmq::message_t{ buffer, buffer_len, [](void *data_, void *hint_){(void)hint_;delete [] reinterpret_cast<char*>(data_);},nullptr};
+}
 
-inline spw_packet from_buffer(const zmq::mutable_buffer& buffer)
+inline spw_packet to_packet(const zmq::message_t& message)
 {
     spw_packet p;
-    yas::load<yas::mem | yas::binary>(yas::shared_buffer { buffer.data(), buffer.size() },
+    yas::load<yas::mem | yas::binary>(yas::shared_buffer { message.data(), message.size() },
         YAS_OBJECT_STRUCT("spw_packet", p, packet, port, bridge_id));
     return p;
 }

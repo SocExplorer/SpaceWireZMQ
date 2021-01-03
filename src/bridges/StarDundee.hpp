@@ -31,6 +31,6 @@ public:
     virtual bool packet_received()final;
     virtual bool set_configuration(const Config& cfg)final;
     virtual Config configuration()const final;
-    STARDundeeBridge();
+    STARDundeeBridge(const Config& cfg);
     virtual ~STARDundeeBridge();
 };
