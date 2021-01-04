@@ -5,7 +5,12 @@ tests = [
     'server'
 ]
 
+test_args = []
+if get_option('teamcity')
+    test_args += ['-r', 'teamcity']
+endif
+
 foreach test:tests
     exe = executable(test, test + '/main.cpp', dependencies:[catch_dep, SpaceWireZMQ_dep])
-    test('test_'+test, exe)
+    test('test_'+test, exe, args: test_args)
 endforeach
