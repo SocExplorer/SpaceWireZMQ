@@ -78,8 +78,9 @@ int main(int argc, char** argv)
     }
 
     ZMQServer server { cfg["server"] };
-    SpaceWireBridges::setup(cfg["bridges"], &server.received_packets);
-    server.loop();
-    SpaceWireBridges::teardown();
+    {
+        const auto _ = SpaceWireBridges::setup(cfg["bridges"], &server.received_packets);
+        server.loop();
+    }
     return 0;
 }

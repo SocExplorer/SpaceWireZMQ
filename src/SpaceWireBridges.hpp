@@ -24,10 +24,19 @@
 #include "SpaceWireBridge.hpp"
 #include "config/Config.hpp"
 #include <containers/algorithms.hpp>
+#include <cpp_utils.hpp>
 #include <functional>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
+#include <memory>
+#include <hedley.h>
+
+template <class T>
+auto scope_leave_guard(T function)
+{
+    return std::shared_ptr<void>( nullptr , std::move( function ) );
+}
 
 using SpaceWireBridge_ctor = std::function<std::unique_ptr<SpaceWireBridge>(
     const Config& cfg, packet_queue* publish_queue)>;
@@ -81,7 +90,8 @@ struct SpaceWireBrigesSingleton
 class SpaceWireBridges
 {
 public:
-    static void setup(Config config, packet_queue* publish_queue)
+    HEDLEY_WARN_UNUSED_RESULT
+    static inline auto setup(Config config, packet_queue* publish_queue)
     {
         using namespace cpp_utils::containers;
         if (!config.isEmpty())
@@ -92,6 +102,7 @@ public:
                     name, *node.get(), publish_queue);
             }
         }
+        return scope_leave_guard([](auto){SpaceWireBridges::teardown();});
     }
 
     static void teardown() { details::SpaceWireBrigesSingleton::instance().teardown(); }

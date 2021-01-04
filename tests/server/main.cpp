@@ -124,7 +124,7 @@ TEST_CASE("ZMQ Server", "[]")
 {
     std::vector<spw_packet> loopback_packets;
     ZMQServer server { {} };
-    SpaceWireBridges::setup(
+    auto _ = SpaceWireBridges::setup(
         config_yaml::load_config<Config>(YML_Config), &(server.received_packets));
     std::this_thread::sleep_for(5ms);
     ZMQMockClient client { server.configuration() };
@@ -139,5 +139,4 @@ TEST_CASE("ZMQ Server", "[]")
     REQUIRE(std::size(received_loopback_packets) == std::size(loopback_packets));
     REQUIRE(received_loopback_packets == loopback_packets);
     server.close();
-    SpaceWireBridges::teardown();
 }
