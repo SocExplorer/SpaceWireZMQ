@@ -28,12 +28,17 @@ struct spw_packet
     std::vector<char> packet;
     std::size_t port;
     std::string bridge_id;
-    spw_packet()=default;
-    spw_packet(const spw_packet&)=default;
-    spw_packet(spw_packet&&)=default;
-    ~spw_packet()=default;
-    spw_packet& operator=(const spw_packet&)=default;
-    spw_packet& operator=(spw_packet&&)=default;
+    spw_packet() = default;
+    spw_packet(const spw_packet&) = default;
+    spw_packet(spw_packet&&) = default;
+    ~spw_packet() = default;
+    spw_packet& operator=(const spw_packet&) = default;
+    spw_packet& operator=(spw_packet&&) = default;
+
+    bool operator==(const spw_packet& other) const
+    {
+        return (port == other.port) && (bridge_id == other.bridge_id) && (packet == other.packet);
+    }
 };
 
 using packet_queue = channels::channel<spw_packet, 16, channels::full_policy::wait_for_space>;
