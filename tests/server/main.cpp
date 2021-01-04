@@ -81,21 +81,22 @@ public:
         if (m_requests.connected())
         {
             zmq::mutable_buffer resp;
-            spw_packet packet { { loopback, 0, 0, 0 }, 0, "Mock" };
+            spw_packet packet { { loopback, 1, 2, 3 }, 0, "Mock" };
             m_requests.send(to_message(packet), zmq::send_flags::none);
             m_requests.recv(resp);
         }
     }
 
-    int consume_packets()
+    std::vector<spw_packet> consume_packets()
     {
         zmq::message_t message;
-        int count = 0;
+        std::vector<spw_packet> packets;
+        packets.reserve(100);
         while (m_publisher.recv(message, zmq::recv_flags::dontwait))
         {
-            count++;
+            packets.push_back(to_packet("Packets", message));
         }
-        return count;
+        return packets;
     }
 };
 
@@ -107,7 +108,7 @@ Mock:
 
 TEST_CASE("ZMQ Server", "[]")
 {
-    int loopback_packets = 0;
+    std::size_t loopback_packets_cnt = 0;
     ZMQServer server { {} };
     SpaceWireBridges::setup(
         config_yaml::load_config<Config>(YML_Config), &(server.received_packets));
@@ -117,12 +118,19 @@ TEST_CASE("ZMQ Server", "[]")
         [&]() {
             bool loopback = rand() & 1;
             client.send_packet(loopback);
-            loopback_packets += loopback;
+            loopback_packets_cnt += loopback;
         },
         100);
     std::this_thread::sleep_for(5ms);
     REQUIRE(std::size(sent_packets) == 100UL);
-    REQUIRE(client.consume_packets() == loopback_packets);
+    const auto loopback_packets = client.consume_packets();
+    REQUIRE(std::size(loopback_packets) == loopback_packets_cnt);
+    REQUIRE(std::accumulate(std::begin(loopback_packets), std::end(loopback_packets), true,
+        [](bool valid, const spw_packet& p) {
+            return valid
+                & ((p.bridge_id == "Mock") & (p.port == 0)
+                    & (p.packet == std::vector<char> { 1, 1, 2, 3 }));
+        }));
     server.close();
     SpaceWireBridges::teardown();
 }
