@@ -25,7 +25,7 @@
 
 struct spw_packet
 {
-    std::vector<char> packet;
+    std::vector<char> data;
     std::size_t port;
     std::string bridge_id;
     spw_packet() = default;
@@ -37,8 +37,9 @@ struct spw_packet
 
     bool operator==(const spw_packet& other) const
     {
-        return (port == other.port) && (bridge_id == other.bridge_id) && (packet == other.packet);
+        return (port == other.port) && (bridge_id == other.bridge_id) && (data == other.data);
     }
+    std::size_t size()const {return std::size(data);}
 };
 
 using packet_queue = channels::channel<spw_packet, 16, channels::full_policy::wait_for_space>;

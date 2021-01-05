@@ -30,7 +30,7 @@
 inline zmq::message_t to_message(const spw_packet& packet)
 {
     auto buf = yas::save<yas::mem | yas::binary>(
-        YAS_OBJECT_STRUCT("spw_packet", packet, packet, port, bridge_id));
+        YAS_OBJECT_STRUCT("spw_packet", packet, data, port, bridge_id));
     return zmq::message_t { buf.data.get(), buf.size };
 }
 
@@ -38,7 +38,7 @@ inline zmq::message_t to_message(const std::string& topic, const spw_packet& pac
 {
     const auto topic_len = std::size(topic);
     auto buf = yas::save<yas::mem | yas::binary>(
-        YAS_OBJECT_STRUCT("spw_packet", packet, packet, port, bridge_id));
+        YAS_OBJECT_STRUCT("spw_packet", packet, data, port, bridge_id));
     const auto buffer_len = topic_len + buf.size;
     char* buffer = new char[buffer_len]();
     std::memcpy(buffer, topic.data(), topic_len);
@@ -54,8 +54,8 @@ inline zmq::message_t to_message(const std::string& topic, const spw_packet& pac
 inline spw_packet to_packet(const zmq::message_t& message)
 {
     spw_packet p;
-    yas::load<yas::mem | yas::binary>(yas::shared_buffer { message.data(), message.size() },
-        YAS_OBJECT_STRUCT("spw_packet", p, packet, port, bridge_id));
+    yas::load<yas::mem | yas::binary>(yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()), message.size() },
+        YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
     return p;
 }
 
@@ -64,8 +64,8 @@ inline spw_packet to_packet(const std::string& topic, const zmq::message_t& mess
     const auto topic_size = std::size(topic);
     spw_packet p;
     yas::load<yas::mem | yas::binary>(
-        yas::shared_buffer { reinterpret_cast<const char*>(message.data()) + topic_size,
+        yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()) + topic_size,
             message.size() - topic_size },
-        YAS_OBJECT_STRUCT("spw_packet", p, packet, port, bridge_id));
+        YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
     return p;
 }

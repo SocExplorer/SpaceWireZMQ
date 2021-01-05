@@ -31,7 +31,7 @@ public:
     virtual bool send_packet(const spw_packet& packet) final
     {
         sent_packets.push_back(packet);
-        if (packet.packet[0] == redirect_value)
+        if (packet.data[0] == redirect_value)
             loopback_packets.push(packet);
         return true;
     }
@@ -130,7 +130,7 @@ TEST_CASE("ZMQ Server", "[]")
     ZMQMockClient client { server.configuration() };
     std::for_each(std::cbegin(packets), std::cend(packets), [&](const spw_packet& packet) {
         client.send_packet(packet);
-        if (packet.packet[0])
+        if (packet.data[0])
             loopback_packets.push_back(packet);
     });
     std::this_thread::sleep_for(5ms);
