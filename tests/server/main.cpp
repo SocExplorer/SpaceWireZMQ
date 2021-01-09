@@ -112,10 +112,10 @@ const std::vector<spw_packet> packets = []() {
     std::vector<spw_packet> packets;
     std::generate_n(std::back_inserter(packets), 100, []() {
         bool loopback = rand() & 1;
-        std::vector<char> data;
+        std::vector<unsigned char> data;
         data.push_back(loopback);
         std::generate_n(std::back_inserter(data), rand() % 32768, []() { return rand(); });
-        return spw_packet { data, static_cast<size_t>(rand()), "Mock" };
+        return spw_packet { std::move(data), static_cast<size_t>(rand()), "Mock" };
     });
     return packets;
 }();

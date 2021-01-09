@@ -21,10 +21,18 @@
 ----------------------------------------------------------------------------*/
 #pragma once
 #include "SpaceWireBridge.hpp"
+#include <star-api.h>
+#include "StarAPI.hpp"
+#include <queue>
 
 class STARDundeeBridge: public ISpaceWireBridge
 {
+    StarAPI::Device m_device;
+    std::vector<StarAPI::Channel<StarAPI::channel_direction_t::inout>> m_channels;
+    bool m_setup{false};
+    std::queue<spw_packet> m_rx_packets;
 public:
+    void packet_receiver_callback(STAR_TRANSFER_OPERATION *pOperation, STAR_TRANSFER_STATUS status);
     virtual bool send_packet(const spw_packet& packet)final;
     virtual spw_packet receive_packet()final;
 

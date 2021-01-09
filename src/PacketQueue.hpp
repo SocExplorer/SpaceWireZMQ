@@ -25,9 +25,21 @@
 
 struct spw_packet
 {
-    std::vector<char> data;
+    std::vector<unsigned char> data;
     std::size_t port;
     std::string bridge_id;
+    spw_packet(std::size_t size, std::size_t port,const std::string& bridge_id)
+            : data(size), port { port }, bridge_id { bridge_id }
+    {
+    }
+    spw_packet(const std::vector<unsigned char>& data, std::size_t port,const std::string& bridge_id)
+            : data(data), port { port }, bridge_id { bridge_id }
+    {
+    }
+    spw_packet(std::vector<unsigned char>&& data, std::size_t port,const std::string& bridge_id)
+            : data(std::move(data)), port { port }, bridge_id { bridge_id }
+    {
+    }
     spw_packet() = default;
     spw_packet(const spw_packet&) = default;
     spw_packet(spw_packet&&) = default;
@@ -39,7 +51,7 @@ struct spw_packet
     {
         return (port == other.port) && (bridge_id == other.bridge_id) && (data == other.data);
     }
-    std::size_t size()const {return std::size(data);}
+    std::size_t size() const { return std::size(data); }
 };
 
 using packet_queue = channels::channel<spw_packet, 16, channels::full_policy::wait_for_space>;
