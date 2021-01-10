@@ -54,4 +54,4 @@ struct spw_packet
     std::size_t size() const { return std::size(data); }
 };
 
-using packet_queue = channels::channel<spw_packet, 16, channels::full_policy::wait_for_space>;
+using packet_queue = channels::channel<spw_packet, 128, channels::full_policy::wait_for_space>;

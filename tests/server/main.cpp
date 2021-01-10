@@ -99,7 +99,7 @@ public:
         while (m_publisher.recv(message, zmq::recv_flags::dontwait))
         {
             packets.push_back(to_packet(
-                which_topic(std::array { topics::CCSDS, topics::RMAP }, message), message));
+                which_topic(message), message));
         }
         return packets;
     }

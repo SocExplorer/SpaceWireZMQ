@@ -29,8 +29,9 @@
 
 namespace topics
 {
-static constexpr char RMAP[] = "RMAP";
-static constexpr char CCSDS[] = "CCSDS";
+static constexpr char RMAP[] = "/RMAP/";
+static constexpr char CCSDS[] = "/CCSDS/";
+static constexpr std::size_t max_size = 16;
 }
 
 
@@ -61,7 +62,8 @@ inline zmq::message_t to_message(const std::string& topic, const spw_packet& pac
 inline spw_packet to_packet(const zmq::message_t& message)
 {
     spw_packet p;
-    yas::load<yas::mem | yas::binary>(yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()), message.size() },
+    yas::load<yas::mem | yas::binary>(
+        yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()), message.size() },
         YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
     return p;
 }
@@ -77,14 +79,15 @@ inline spw_packet to_packet(const std::string& topic, const zmq::message_t& mess
     return p;
 }
 
-template <typename T>
-inline std::string which_topic(const T& topics, const zmq::message_t& message)
+
+inline std::string which_topic(const zmq::message_t& message)
 {
-    auto topic = std::find_if(std::cbegin(topics), std::cend(topics),[&message](const std::string& topic)
-    {
-        return !std::strncmp(topic.data(),reinterpret_cast<const char*>(message.data()),topic.size());
-    });
-    if(topic)
-        return *topic;
-    return {};
+    auto data = reinterpret_cast<const char*>(message.data());
+    if (data[0] != '/')
+        return {};
+    auto pos = std::find(data + 1, data + topics::max_size + 1, '/');
+    if (pos == data + topics::max_size + 1)
+        return {};
+    return { data, pos + 1 };
 }
+
