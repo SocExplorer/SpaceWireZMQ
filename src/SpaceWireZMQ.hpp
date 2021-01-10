@@ -27,6 +27,13 @@
 #include <yas/std_types.hpp>
 #include <zmq.hpp>
 
+namespace topics
+{
+static constexpr char RMAP[] = "RMAP";
+static constexpr char CCSDS[] = "CCSDS";
+}
+
+
 inline zmq::message_t to_message(const spw_packet& packet)
 {
     auto buf = yas::save<yas::mem | yas::binary>(
@@ -68,4 +75,16 @@ inline spw_packet to_packet(const std::string& topic, const zmq::message_t& mess
             message.size() - topic_size },
         YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
     return p;
+}
+
+template <typename T>
+inline std::string which_topic(const T& topics, const zmq::message_t& message)
+{
+    auto topic = std::find_if(std::cbegin(topics), std::cend(topics),[&message](const std::string& topic)
+    {
+        return !std::strncmp(topic.data(),reinterpret_cast<const char*>(message.data()),topic.size());
+    });
+    if(topic)
+        return *topic;
+    return {};
 }

@@ -38,7 +38,7 @@ public:
         m_requests = zmq::socket_t { m_ctx, zmq::socket_type::req };
 
         m_publisher.connect(fmt::format("tcp://{}:{}", address, pub_port));
-        m_publisher.set(zmq::sockopt::subscribe, "Packets");
+        m_publisher.set(zmq::sockopt::subscribe, topics::RMAP);
         m_requests.connect(fmt::format("tcp://{}:{}", address, req_port));
     }
 
@@ -88,7 +88,7 @@ public:
         while (count--
             && m_publisher.recv(message, wait ? zmq::recv_flags::none : zmq::recv_flags::dontwait))
         {
-            packets.push_back(to_packet("Packets", message));
+            packets.push_back(to_packet(topics::RMAP, message));
         }
         return packets;
     }

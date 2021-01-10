@@ -26,6 +26,7 @@
 #include "callable.hpp"
 #include "config/Config.hpp"
 #include "spdlog/spdlog.h"
+#include <SpaceWirePP/SpaceWire.hpp>
 #include <atomic>
 #include <containers/algorithms.hpp>
 #include <fmt/format.h>
@@ -51,7 +52,7 @@ void ZMQServer::loop()
 {
     struct sigaction sigIntHandler;
 
-    sigIntHandler.sa_handler = callableToPointer([this](int s){
+    sigIntHandler.sa_handler = callableToPointer([this](int s) {
         (void)s;
         spdlog::info("SIGINT received closing...");
         close();
@@ -86,7 +87,18 @@ void ZMQServer::publish_packets()
         auto packet = received_packets.take();
         if (packet)
         {
-            m_publisher.send(to_message("Packets", *packet), zmq::send_flags::none);
+            const spacewire::protocol_id_t protocol =spacewire::fields::protocol_identifier(packet->data.data());
+            switch (protocol)
+            {
+                case spacewire::protocol_id_t::SPW_PROTO_ID_CCSDS:
+                    m_publisher.send(to_message(topics::CCSDS, *packet), zmq::send_flags::none);
+                    break;
+                case spacewire::protocol_id_t::SPW_PROTO_ID_RMAP:
+                    m_publisher.send(to_message(topics::RMAP, *packet), zmq::send_flags::none);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

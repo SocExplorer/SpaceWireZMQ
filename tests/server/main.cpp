@@ -1,12 +1,12 @@
 #define CATCH_CONFIG_MAIN
 #if __has_include(<catch2/catch.hpp>)
 #include <catch2/catch.hpp>
-#include <catch2/catch_reporter_teamcity.hpp>
 #include <catch2/catch_reporter_tap.hpp>
+#include <catch2/catch_reporter_teamcity.hpp>
 #else
 #include <catch.hpp>
-#include <catch_reporter_teamcity.hpp>
 #include <catch_reporter_tap.hpp>
+#include <catch_reporter_teamcity.hpp>
 #endif
 #include "SpaceWireBridge.hpp"
 #include "SpaceWireBridges.hpp"
@@ -14,6 +14,7 @@
 #include "ZMQServer.hpp"
 #include "config/Config.hpp"
 #include "config/yaml_io.hpp"
+#include <SpaceWirePP/SpaceWire.hpp>
 #include <cassert>
 #include <cstdint>
 #include <queue>
@@ -76,7 +77,7 @@ public:
         m_requests = zmq::socket_t { m_ctx, zmq::socket_type::req };
 
         m_publisher.connect(fmt::format("tcp://{}:{}", address, pub_port));
-        m_publisher.set(zmq::sockopt::subscribe, "Packets");
+        m_publisher.set(zmq::sockopt::subscribe, topics::CCSDS);
         m_requests.connect(fmt::format("tcp://{}:{}", address, req_port));
     }
 
@@ -97,7 +98,8 @@ public:
         packets.reserve(100);
         while (m_publisher.recv(message, zmq::recv_flags::dontwait))
         {
-            packets.push_back(to_packet("Packets", message));
+            packets.push_back(to_packet(
+                which_topic(std::array { topics::CCSDS, topics::RMAP }, message), message));
         }
         return packets;
     }
@@ -114,7 +116,9 @@ const std::vector<spw_packet> packets = []() {
         bool loopback = rand() & 1;
         std::vector<unsigned char> data;
         data.push_back(loopback);
-        std::generate_n(std::back_inserter(data), rand() % 32768, []() { return rand(); });
+        std::generate_n(std::back_inserter(data), rand() % 32760 + 8, []() { return rand(); });
+        spacewire::fields::protocol_identifier(data.data())
+            = spacewire::protocol_id_t::SPW_PROTO_ID_CCSDS;
         return spw_packet { std::move(data), static_cast<size_t>(rand()), "Mock" };
     });
     return packets;

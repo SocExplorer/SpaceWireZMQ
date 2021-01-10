@@ -24,9 +24,9 @@
 #include "callable.hpp"
 #include "config/Config.hpp"
 #include <atomic>
+#include <string_view>
 #include <thread>
 #include <zmq.hpp>
-
 
 class ZMQServer
 {

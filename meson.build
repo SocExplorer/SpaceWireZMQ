@@ -39,7 +39,7 @@ SpaceWireZMQ_headers = files([
 SpaceWireZMQ_dependencies = [
                   cppzmq_dep, spdlog_dep, yaml_cpp_dep, cppdict_dep,
                   nlohmann_json_dep, channels_dep, fmt_dep, yas_dep,
-                  cpp_utils_dep, argparse_dep
+                  cpp_utils_dep, argparse_dep, SpaceWirePP_dep
 ]
 
 if get_option('with_stardundee')
