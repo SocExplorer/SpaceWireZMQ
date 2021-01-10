@@ -33,6 +33,7 @@ SpaceWireZMQ_headers = files([
     'src/PacketQueue.hpp',
     'src/SpaceWireZMQ.hpp',
     'src/SpaceWireBridges.hpp',
+    'src/ZMQClient.hpp',
     'src/callable.hpp'
 ])
 

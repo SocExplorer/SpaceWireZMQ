@@ -29,9 +29,52 @@
 
 namespace topics
 {
-static constexpr char RMAP[] = "/RMAP/";
-static constexpr char CCSDS[] = "/CCSDS/";
+enum class types
+{
+    RMAP = 0,
+    CCSDS = 1,
+    EXTEND = 2,
+    GOES_R = 3,
+    STUP = 4
+};
+
+namespace strings
+{
+    static constexpr char RMAP[] = "/RMAP/";
+    static constexpr char CCSDS[] = "/CCSDS/";
+    static constexpr char EXTEND[] = "/EXTEND/";
+    static constexpr char GOES_R[] = "/GOES_R/";
+    static constexpr char STUP[] = "/STUP/";
+    static constexpr std::array table = { RMAP, CCSDS, EXTEND, GOES_R, STUP };
+}
+
 static constexpr std::size_t max_size = 16;
+
+inline constexpr const char* to_string(types topic)
+{
+    auto topic_index = static_cast<std::size_t>(topic);
+    if(topic_index>=std::size(strings::table))
+    {
+        return "";
+    }
+    return strings::table[topic_index];
+}
+
+inline std::size_t end_of_topic(const unsigned char* buffer)
+{
+    assert(buffer[0]=='/');
+    auto pos=1UL;
+    while((pos < topics::max_size) && (buffer[pos]!='/'))
+        pos++;
+    assert(buffer[pos]=='/');
+    return pos+1;
+}
+
+inline std::string extract_topic(const unsigned char* buffer)
+{
+    std::size_t message_begin = topics::end_of_topic(buffer);
+    return { buffer, buffer+ message_begin};
+}
 }
 
 
@@ -59,35 +102,37 @@ inline zmq::message_t to_message(const std::string& topic, const spw_packet& pac
         nullptr };
 }
 
+inline spw_packet to_packet(const void*buffer, std::size_t len)
+{
+    spw_packet p;
+    yas::load<yas::mem | yas::binary>(
+        yas::intrusive_buffer {reinterpret_cast<const char*>(buffer), len},
+        YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
+    return p;
+}
+
 inline spw_packet to_packet(const zmq::message_t& message)
 {
-    spw_packet p;
-    yas::load<yas::mem | yas::binary>(
-        yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()), message.size() },
-        YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
-    return p;
+    return to_packet(message.data(),message.size());
 }
 
-inline spw_packet to_packet(const std::string& topic, const zmq::message_t& message)
+enum class drop_topic_t:bool
 {
-    const auto topic_size = std::size(topic);
-    spw_packet p;
-    yas::load<yas::mem | yas::binary>(
-        yas::intrusive_buffer { reinterpret_cast<const char*>(message.data()) + topic_size,
-            message.size() - topic_size },
-        YAS_OBJECT_STRUCT("spw_packet", p, data, port, bridge_id));
-    return p;
-}
+    no=false,
+    yes=true
+};
 
-
-inline std::string which_topic(const zmq::message_t& message)
+inline spw_packet to_packet(const zmq::message_t& message, drop_topic_t drop_topic)
 {
-    auto data = reinterpret_cast<const char*>(message.data());
-    if (data[0] != '/')
-        return {};
-    auto pos = std::find(data + 1, data + topics::max_size + 1, '/');
-    if (pos == data + topics::max_size + 1)
-        return {};
-    return { data, pos + 1 };
+    if(drop_topic==drop_topic_t::yes)
+    {
+        const auto buffer = reinterpret_cast<const unsigned char*>(message.data());
+        const auto size = std::size(message);
+        std::size_t message_begin = topics::end_of_topic(buffer);
+        return to_packet(buffer+message_begin,size-message_begin);
+    }
+    else {
+        return to_packet(message);
+    }
 }
 

@@ -87,14 +87,29 @@ void ZMQServer::publish_packets()
         auto packet = received_packets.take();
         if (packet)
         {
-            const spacewire::protocol_id_t protocol =spacewire::fields::protocol_identifier(packet->data.data());
+            const spacewire::protocol_id_t protocol
+                = spacewire::fields::protocol_identifier(packet->data.data());
             switch (protocol)
             {
                 case spacewire::protocol_id_t::SPW_PROTO_ID_CCSDS:
-                    m_publisher.send(to_message(topics::CCSDS, *packet), zmq::send_flags::none);
+                    m_publisher.send(
+                        to_message(topics::strings::CCSDS, *packet), zmq::send_flags::none);
                     break;
                 case spacewire::protocol_id_t::SPW_PROTO_ID_RMAP:
-                    m_publisher.send(to_message(topics::RMAP, *packet), zmq::send_flags::none);
+                    m_publisher.send(
+                        to_message(topics::strings::RMAP, *packet), zmq::send_flags::none);
+                    break;
+                case spacewire::protocol_id_t::SPW_PROTO_ID_EXTEND:
+                    m_publisher.send(
+                        to_message(topics::strings::EXTEND, *packet), zmq::send_flags::none);
+                    break;
+                case spacewire::protocol_id_t::SPW_PROTO_ID_GOES_R:
+                    m_publisher.send(
+                        to_message(topics::strings::GOES_R, *packet), zmq::send_flags::none);
+                    break;
+                case spacewire::protocol_id_t::SPW_PROTO_ID_STUP:
+                    m_publisher.send(
+                        to_message(topics::strings::STUP, *packet), zmq::send_flags::none);
                     break;
                 default:
                     break;
