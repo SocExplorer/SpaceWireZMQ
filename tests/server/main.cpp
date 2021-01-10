@@ -12,6 +12,7 @@
 #include "SpaceWireBridges.hpp"
 #include "SpaceWireZMQ.hpp"
 #include "ZMQServer.hpp"
+#include "ZMQClient.hpp"
 #include "config/Config.hpp"
 #include "config/yaml_io.hpp"
 #include <SpaceWirePP/SpaceWire.hpp>
@@ -59,50 +60,6 @@ static auto t = SpaceWireBridges::register_ctor(
         return std::make_unique<SpaceWireBridge>(std::make_unique<MockBridge>(cfg), publish_queue);
     });
 
-class ZMQMockClient
-{
-    zmq::context_t m_ctx;
-    zmq::socket_t m_publisher;
-    zmq::socket_t m_requests;
-
-public:
-    ZMQMockClient(Config cfg)
-    {
-        const auto address = cfg["address"].to<std::string>("127.0.0.1");
-        const auto pub_port = cfg["pub_port"].to<int>(30000);
-        const auto req_port = cfg["req_port"].to<int>(30001);
-
-        m_ctx = zmq::context_t { 1 };
-        m_publisher = zmq::socket_t { m_ctx, zmq::socket_type::sub };
-        m_requests = zmq::socket_t { m_ctx, zmq::socket_type::req };
-
-        m_publisher.connect(fmt::format("tcp://{}:{}", address, pub_port));
-        m_publisher.set(zmq::sockopt::subscribe, topics::strings::CCSDS);
-        m_requests.connect(fmt::format("tcp://{}:{}", address, req_port));
-    }
-
-    void send_packet(const spw_packet& packet)
-    {
-        if (m_requests.connected())
-        {
-            zmq::mutable_buffer resp;
-            m_requests.send(to_message(packet), zmq::send_flags::none);
-            m_requests.recv(resp);
-        }
-    }
-
-    std::vector<spw_packet> consume_packets()
-    {
-        zmq::message_t message;
-        std::vector<spw_packet> packets;
-        packets.reserve(100);
-        while (m_publisher.recv(message, zmq::recv_flags::dontwait))
-        {
-            packets.push_back(to_packet(message, drop_topic_t::yes));
-        }
-        return packets;
-    }
-};
 
 const auto YML_Config = std::string(R"(
 Mock:
@@ -130,7 +87,7 @@ TEST_CASE("ZMQ Server", "[]")
     auto _ = SpaceWireBridges::setup(
         config_yaml::load_config<Config>(YML_Config), &(server.received_packets));
     std::this_thread::sleep_for(5ms);
-    ZMQMockClient client { server.configuration() };
+    ZMQClient<topic_policy::per_topic_queue> client {{topics::types::CCSDS}, server.configuration() };
     std::for_each(std::cbegin(packets), std::cend(packets), [&](const spw_packet& packet) {
         client.send_packet(packet);
         if (packet.data[0])
@@ -138,7 +95,7 @@ TEST_CASE("ZMQ Server", "[]")
     });
     std::this_thread::sleep_for(5ms);
     REQUIRE(std::size(sent_packets) == 100UL);
-    const auto received_loopback_packets = client.consume_packets();
+    const auto received_loopback_packets = client.get_packets(topics::types::CCSDS);
     REQUIRE(std::size(received_loopback_packets) == std::size(loopback_packets));
     REQUIRE(received_loopback_packets == loopback_packets);
     server.close();

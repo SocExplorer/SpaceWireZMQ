@@ -35,7 +35,8 @@ enum class types
     CCSDS = 1,
     EXTEND = 2,
     GOES_R = 3,
-    STUP = 4
+    STUP = 4,
+    UNKNOWN = 5
 };
 
 namespace strings
@@ -46,6 +47,34 @@ namespace strings
     static constexpr char GOES_R[] = "/GOES_R/";
     static constexpr char STUP[] = "/STUP/";
     static constexpr std::array table = { RMAP, CCSDS, EXTEND, GOES_R, STUP };
+    inline types to_type(const std::string& topic)
+    {
+        switch (topic[1]) {
+        case 'R':
+            if(topic==RMAP)
+                return types::RMAP;
+            break;
+        case 'C':
+            if(topic==CCSDS)
+                return types::CCSDS;
+            break;
+        case 'E':
+            if(topic==EXTEND)
+                return types::EXTEND;
+            break;
+        case 'G':
+            if(topic==GOES_R)
+                return types::GOES_R;
+            break;
+        case 'S':
+            if(topic==STUP)
+                return types::STUP;
+            break;
+        default:
+            break;
+        }
+        return types::UNKNOWN;
+    }
 }
 
 static constexpr std::size_t max_size = 16;
