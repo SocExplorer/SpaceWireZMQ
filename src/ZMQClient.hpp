@@ -52,6 +52,9 @@ class ZMQClient
     zmq::context_t m_ctx;
     zmq::socket_t m_subscription;
     zmq::socket_t m_requests;
+    std::array<bool,
+        topic_policy::is_all_topic_merged<topic_policy_t> ? 1 : std::size(topics::strings::table)>
+        m_topic_enabled;
     std::array<packet_queue,
         topic_policy::is_all_topic_merged<topic_policy_t> ? 1 : std::size(topics::strings::table)>
         m_received_packets;
@@ -73,7 +76,8 @@ class ZMQClient
     void store_packet(const zmq::message_t& message)
     {
         const std::size_t index = topic_index(message);
-        if (index < std::size(m_received_packets))
+        assert(m_topic_enabled[index]);
+        if ((index < std::size(m_received_packets)) && m_topic_enabled[index])
             m_received_packets[index] << to_packet(message, drop_topic_t::yes);
     }
 
@@ -126,9 +130,14 @@ public:
         m_subscription = zmq::socket_t { m_ctx, zmq::socket_type::sub };
         m_subscription.connect(fmt::format("tcp://{}:{}", address, pub_port));
 
+        for (auto& enabled : m_topic_enabled)
+        {
+            enabled = false;
+        }
         for (const auto& topic : subscribed_topics)
         {
             m_subscription.set(zmq::sockopt::subscribe, topics::to_string(topic));
+            m_topic_enabled[static_cast<std::size_t>(topic)] = true;
         }
         m_running = true;
         m_sub_thread = std::thread(&ZMQClient::subscription_thread, this);
