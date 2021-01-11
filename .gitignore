@@ -2,9 +2,14 @@ build/
 subprojects/range-v3-*
 subprojects/Catch2-*
 subprojects/cpp_utils
+subprojects/channels
+subprojects/spacewirepp
+subprojects/cppdict
+subprojects/yas
 subprojects/fmt-*
 subprojects/hedley-*
 subprojects/spdlog-*
+subprojects/nlohmann_json-*
 subprojects/packagecache/*
 *.srctrl*
 *.kdev4

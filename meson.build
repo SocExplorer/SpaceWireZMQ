@@ -1,7 +1,7 @@
 project('SpaceWireZMQ', 'cpp', default_options : ['cpp_std=c++17'])
 
 cmake = import('cmake')
-
+zmq_dep = dependency('libzmq')
 cppzmq_dep = dependency('cppzmq', required: false)
 if not cppzmq_dep.found()
     cppzmq_dep = declare_dependency(include_directories:'subprojects/cppzmq')
@@ -38,7 +38,7 @@ SpaceWireZMQ_headers = files([
 ])
 
 SpaceWireZMQ_dependencies = [
-                  cppzmq_dep, spdlog_dep, yaml_cpp_dep, cppdict_dep,
+                  zmq_dep, cppzmq_dep, spdlog_dep, yaml_cpp_dep, cppdict_dep,
                   nlohmann_json_dep, channels_dep, fmt_dep, yas_dep,
                   cpp_utils_dep, argparse_dep, SpaceWirePP_dep
 ]
