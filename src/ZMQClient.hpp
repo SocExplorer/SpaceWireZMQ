@@ -65,20 +65,23 @@ class ZMQClient
     {
         using namespace topics;
         using namespace topics::strings;
-        if constexpr (topic_policy::is_per_topic<topic_policy_t>)
-        {
-            return static_cast<std::size_t>(
-                to_type(extract_topic(reinterpret_cast<const unsigned char*>(message.data()))));
-        }
-        return 0;
+        return static_cast<std::size_t>(
+            to_type(extract_topic(reinterpret_cast<const unsigned char*>(message.data()))));
     }
 
     void store_packet(const zmq::message_t& message)
     {
         const std::size_t index = topic_index(message);
         assert(m_topic_enabled[index]);
-        if ((index < std::size(m_received_packets)) && m_topic_enabled[index])
-            m_received_packets[index] << to_packet(message, drop_topic_t::yes);
+        if constexpr (topic_policy::is_per_topic<topic_policy_t>)
+        {
+            if ((index < std::size(m_received_packets)) && m_topic_enabled[index])
+                m_received_packets[index] << to_packet(message, drop_topic_t::yes);
+        }
+        else
+        {
+            m_received_packets[0] << to_packet(message, drop_topic_t::yes);
+        }
     }
 
     void subscription_thread()
