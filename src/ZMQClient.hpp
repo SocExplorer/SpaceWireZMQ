@@ -181,4 +181,17 @@ public:
     {
         return get_packets(0);
     }
+
+    template <typename _topic_policy_t = topic_policy_t>
+    std::enable_if_t<topic_policy::is_per_topic<_topic_policy_t>, bool> has_packets(
+        topics::types topic)
+    {
+        return std::size(m_received_packets[static_cast<std::size_t>(topic)]);
+    }
+
+    template <typename _topic_policy_t = topic_policy_t>
+    std::enable_if_t<topic_policy::is_all_topic_merged<_topic_policy_t>, bool> has_packets()
+    {
+        return std::size(m_received_packets[0]);
+    }
 };
