@@ -53,7 +53,7 @@ spw_packet random_ccsds_packet()
     return packet;
 }
 
-TEST_CASE("ZMQ Server", "[]")
+TEST_CASE("ZMQ Client", "[]")
 {
     std::vector<spw_packet> loopback_packets;
     ZMQServer server { {} };
