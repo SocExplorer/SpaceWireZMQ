@@ -44,12 +44,15 @@ public:
 
     void rmap_write(uint32_t address, const std::vector<unsigned char>& data)
     {
-        static int id = 0;
+        rmap_write(address, data.data(), std::size(data));
+    }
 
-        spw_packet packet { spacewire::rmap::write_request_buffer_size(std::size(data)), 0,
-            "STAR-Dundee" };
+    void rmap_write(uint32_t address, const unsigned char* data, std::size_t size)
+    {
+        static int id = 0;
+        spw_packet packet { spacewire::rmap::write_request_buffer_size(size), 0, "STAR-Dundee" };
         spacewire::rmap::build_write_request(
-            254, 2, 32, address, id++, data.data(), std::size(data), packet.data.data());
+            254, 2, 32, address, id++, data, size, packet.data.data());
         send_packet(packet);
     }
 };
@@ -61,41 +64,50 @@ STAR-Dundee:
 
 TEST_CASE("ZMQ Server", "[]")
 {
+    constexpr auto bucket_size = 1024UL;
+    constexpr auto bucket_count = 1024UL;
+    using namespace spacewire::rmap;
+    std::vector<unsigned char> ref_data(bucket_count * bucket_size);
+    std::generate(std::begin(ref_data), std::end(ref_data), []() mutable { return rand(); });
     std::vector<spw_packet> loopback_packets;
     ZMQServer server { {} };
     auto _ = SpaceWireBridges::setup(
         config_yaml::load_config<Config>(YML_Config), &(server.received_packets));
     std::this_thread::sleep_for(5ms);
     ZMQRMAPClient client { server.configuration() };
-    1000 * [&]() {
+    bucket_count* [&]() {
         static int offset = 0;
-        std::vector<unsigned char> data(1024UL);
-        std::generate(
-            std::begin(data), std::end(data), [value = offset]() mutable { return value++; });
-        client.rmap_write(0x40000000 + offset, data);
-        offset += 1024;
+        client.rmap_write(0x40000000 + offset, ref_data.data() + offset, bucket_size);
+        offset += bucket_size;
         while (!client.has_packets())
         {
             std::this_thread::sleep_for(100us);
         }
         auto responses = client.get_packets();
         REQUIRE(std::size(responses) == 1);
-        REQUIRE(spacewire::rmap::is_rmap(responses[0].data.data()));
-        REQUIRE(spacewire::rmap::is_rmap_write_response(responses[0].data.data()));
+        REQUIRE(is_rmap(responses[0].data.data()));
+        REQUIRE(is_rmap_write_response(responses[0].data.data()));
     };
     std::this_thread::sleep_for(5ms);
-    1000 * [&]() {
+    bucket_count* [&]() {
         static int offset = 0;
-        client.rmap_read(0x40000000 + offset, 1024);
-        offset += 1024;
+        client.rmap_read(0x40000000 + offset, bucket_size);
         while (!client.has_packets())
         {
             std::this_thread::sleep_for(100us);
         }
         auto responses = client.get_packets();
         REQUIRE(std::size(responses) == 1);
-        REQUIRE(spacewire::rmap::is_rmap(responses[0].data.data()));
-        REQUIRE(spacewire::rmap::is_rmap_read_response(responses[0].data.data()));
+        const auto packet = responses[0].data.data();
+        REQUIRE(is_rmap(packet));
+        REQUIRE(is_rmap_read_response(packet));
+        REQUIRE(header_crc_valid<rmap_read_response_tag>(packet));
+        REQUIRE(data_crc_valid<rmap_read_response_tag>(packet));
+        for (auto i = 0UL; i < bucket_size; i++)
+        {
+            REQUIRE(fields::data<rmap_read_response_tag>(packet)[i] == ref_data[i + offset]);
+        }
+        offset += bucket_size;
     };
     std::this_thread::sleep_for(5ms);
     server.close();
